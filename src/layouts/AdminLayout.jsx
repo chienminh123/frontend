@@ -58,6 +58,7 @@ const baseMenu = [
       "Production",
       "Attendance",
       "Sales",
+      "IPOS",
     ],
   },
 ];
