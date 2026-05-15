@@ -58,7 +58,7 @@ const VnPayReturnPage = () => {
         </>
       )}
       <Link
-        to="/account/orders"
+        to="/account/my-orders"
         className="bg-green-500 text-white px-6 py-3 rounded-xl font-bold"
       >
         Xem đơn hàng của tôi

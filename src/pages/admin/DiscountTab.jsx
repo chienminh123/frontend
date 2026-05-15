@@ -19,9 +19,12 @@ const DiscountTab = () => {
   const [discounts, setDiscounts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchDiscountKey, setSearchDiscountKey] = useState("");
+
+  // 🎯 1. THÊM DiscountValue VÀO STATE KHỞI TẠO
   const [newDiscount, setNewDiscount] = useState({
     Code: "",
-    LoaiMa: "Persent",
+    LoaiMa: "Percent", // Sửa lại đúng chính tả Percent thay vì Persent
+    DiscountValue: "",
     MaxValue: "",
     SoLuong: "",
     NgayBatDau: "",
@@ -77,15 +80,22 @@ const DiscountTab = () => {
       const form = new FormData();
       form.append("Code", newDiscount.Code);
       form.append("LoaiMa", newDiscount.LoaiMa);
-      form.append("MaxValue", newDiscount.MaxValue.toString());
+      form.append("DiscountValue", newDiscount.DiscountValue.toString());
+      const finalMaxValue =
+        newDiscount.LoaiMa === "Fixed"
+          ? newDiscount.DiscountValue || 0
+          : newDiscount.MaxValue || 0;
+      form.append("MaxValue", finalMaxValue.toString());
       form.append("SoLuong", newDiscount.SoLuong.toString());
       form.append("NgayBatDau", newDiscount.NgayBatDau);
       form.append("NgayKetThuc", newDiscount.NgayKetThuc);
+
       await api.post("/admin/Discount", form, { headers: authHeaders });
       await handleSearchDiscount(searchDiscountKey);
       setNewDiscount({
         Code: "",
-        LoaiMa: "Persent",
+        LoaiMa: "Percent",
+        DiscountValue: "",
         MaxValue: "",
         SoLuong: "",
         NgayBatDau: "",
@@ -107,10 +117,16 @@ const DiscountTab = () => {
       const form = new FormData();
       form.append("Code", editingDiscount.code);
       form.append("LoaiMa", editingDiscount.loaiMa);
-      form.append("MaxValue", editingDiscount.maxValue.toString());
+      form.append("DiscountValue", editingDiscount.discountValue.toString());
+      const finalMaxValue =
+        newDiscount.LoaiMa === "Fixed"
+          ? newDiscount.DiscountValue || 0
+          : newDiscount.MaxValue || 0;
+      form.append("MaxValue", finalMaxValue.toString());
       form.append("SoLuong", editingDiscount.soLuong.toString());
       form.append("NgayBatDau", editingDiscount.ngayBatDau);
       form.append("NgayKetThuc", editingDiscount.ngayKetThuc);
+
       await api.put(
         `/admin/Discount/discount-update/${editingDiscount.id}`,
         form,
@@ -141,6 +157,7 @@ const DiscountTab = () => {
 
   return (
     <div className="grid gap-6 lg:grid-cols-[1.5fr,1fr] animate-fade-in">
+      {/* ================= BẢNG DANH SÁCH ================= */}
       <section className="space-y-4">
         <input
           type="text"
@@ -157,61 +174,80 @@ const DiscountTab = () => {
             <thead className="text-xs uppercase font-bold text-green-700 bg-green-50">
               <tr>
                 <th className="py-3 px-4">Mã Code</th>
-                <th className="py-3 px-4">Giảm giá</th>
+                <th className="py-3 px-4">Mức Giảm</th>
                 <th className="py-3 px-4">Số lượng</th>
                 <th className="py-3 px-4">Thời hạn</th>
                 <th className="py-3 px-4 text-right">Hành động</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {discounts.map((d, idx) => (
-                <tr key={idx} className="hover:bg-gray-50">
-                  <td className="py-3 px-4 font-black text-blue-600 tracking-wider">
-                    {d.code || d.Code}
-                  </td>
-                  <td className="py-3 px-4 font-bold text-green-600">
-                    {d.loaiMa === "Fixed" || d.LoaiMa === "Fixed"
-                      ? `${(d.maxValue || d.MaxValue)?.toLocaleString()}₫`
-                      : `${d.maxValue || d.MaxValue}%`}
-                  </td>
-                  <td className="py-3 px-4 text-gray-600">
-                    {d.soLuong || d.SoLuong}
-                  </td>
-                  <td className="py-3 px-4 text-xs text-gray-500">
-                    {d.ngayBatDau?.slice(0, 10)} <br />
-                    đến {d.ngayKetThuc?.slice(0, 10)}
-                  </td>
-                  <td className="py-3 px-4 text-right">
-                    <button
-                      className="text-blue-500 hover:underline mr-3"
-                      onClick={() =>
-                        setEditingDiscount({
-                          id: d.id,
-                          code: d.code || d.Code || "",
-                          loaiMa: d.loaiMa || d.LoaiMa || "Persent",
-                          maxValue: d.maxValue || d.MaxValue || 0,
-                          soLuong: d.soLuong || d.SoLuong || 0,
-                          ngayBatDau: d.ngayBatDau || d.NgayBatDau || "",
-                          ngayKetThuc: d.ngayKetThuc || d.NgayKetThuc || "",
-                        })
-                      }
-                    >
-                      Sửa
-                    </button>
-                    <button
-                      className="text-red-500 hover:underline"
-                      onClick={() => handleDeleteDiscount(d.id)}
-                    >
-                      Xóa
-                    </button>
-                  </td>
-                </tr>
-              ))}
+              {discounts.map((d, idx) => {
+                // Xử lý hiển thị logic mới
+                const isFixed =
+                  d.loaiMa?.toUpperCase() === "FIXED" ||
+                  d.LoaiMa?.toUpperCase() === "FIXED";
+                const val = d.discountValue || d.DiscountValue || 0;
+                const max = d.maxValue || d.MaxValue || 0;
+
+                return (
+                  <tr key={idx} className="hover:bg-gray-50">
+                    <td className="py-3 px-4 font-black text-blue-600 tracking-wider">
+                      {d.code || d.Code}
+                    </td>
+                    <td className="py-3 px-4">
+                      {/* 🎯 4. HIỂN THỊ LOGIC MỚI LÊN BẢNG */}
+                      <span className="font-bold text-green-600">
+                        {isFixed ? `-${val.toLocaleString()}₫` : `-${val}%`}
+                      </span>
+                      {!isFixed && max > 0 && (
+                        <div className="text-xs text-gray-500 mt-1">
+                          Tối đa: {max.toLocaleString()}₫
+                        </div>
+                      )}
+                    </td>
+                    <td className="py-3 px-4 text-gray-600">
+                      {d.soLuong || d.SoLuong}
+                    </td>
+                    <td className="py-3 px-4 text-xs text-gray-500">
+                      {d.ngayBatDau?.slice(0, 10)} <br />
+                      đến {d.ngayKetThuc?.slice(0, 10)}
+                    </td>
+                    <td className="py-3 px-4 text-right">
+                      <button
+                        className="text-blue-500 hover:underline mr-3"
+                        onClick={() =>
+                          setEditingDiscount({
+                            id: d.id,
+                            code: d.code || d.Code || "",
+                            loaiMa: d.loaiMa || d.LoaiMa || "Percent",
+                            // Bổ sung map DiscountValue
+                            discountValue:
+                              d.discountValue || d.DiscountValue || 0,
+                            maxValue: d.maxValue || d.MaxValue || 0,
+                            soLuong: d.soLuong || d.SoLuong || 0,
+                            ngayBatDau: d.ngayBatDau || d.NgayBatDau || "",
+                            ngayKetThuc: d.ngayKetThuc || d.NgayKetThuc || "",
+                          })
+                        }
+                      >
+                        Sửa
+                      </button>
+                      <button
+                        className="text-red-500 hover:underline"
+                        onClick={() => handleDeleteDiscount(d.id)}
+                      >
+                        Xóa
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
       </section>
 
+      {/* ================= FORM THÊM/SỬA ================= */}
       <section className="rounded-2xl bg-white border border-green-100 p-6 shadow-sm h-fit">
         <h3 className="text-lg font-bold text-gray-800 mb-5">
           {editingDiscount ? "✏️ Sửa mã giảm giá" : "✨ Thêm mã giảm giá"}
@@ -241,6 +277,8 @@ const DiscountTab = () => {
               }
             />
           </div>
+
+          {/* 🎯 5. BỐ CỤC LẠI KHU VỰC NHẬP GIÁ TRỊ GIẢM */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
               <label className="block font-bold text-gray-700">Loại mã</label>
@@ -258,15 +296,55 @@ const DiscountTab = () => {
                     : setNewDiscount({ ...newDiscount, LoaiMa: e.target.value })
                 }
               >
-                <option value="Persent">Phần trăm (%)</option>
+                <option value="Percent">Phần trăm (%)</option>
                 <option value="Fixed">Cố định (VNĐ)</option>
               </select>
             </div>
+
             <div className="space-y-1">
-              <label className="block font-bold text-gray-700">Mức giảm</label>
+              <label className="block font-bold text-gray-700">
+                Giá trị giảm
+              </label>
               <input
                 type="number"
                 required
+                placeholder={
+                  (editingDiscount
+                    ? editingDiscount.loaiMa
+                    : newDiscount.LoaiMa) === "Fixed"
+                    ? "Ví dụ: 20000"
+                    : "Ví dụ: 10"
+                }
+                className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-green-500"
+                value={
+                  editingDiscount
+                    ? editingDiscount.discountValue
+                    : newDiscount.DiscountValue
+                }
+                onChange={(e) =>
+                  editingDiscount
+                    ? setEditingDiscount({
+                        ...editingDiscount,
+                        discountValue: parseFloat(e.target.value) || 0,
+                      })
+                    : setNewDiscount({
+                        ...newDiscount,
+                        DiscountValue: e.target.value,
+                      })
+                }
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <label className="block font-bold text-gray-700">
+                Giảm tối đa (VNĐ)
+              </label>
+              <input
+                type="number"
+                required
+                placeholder="Ví dụ: 50000"
                 className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-green-500"
                 value={
                   editingDiscount
@@ -284,28 +362,48 @@ const DiscountTab = () => {
                         MaxValue: e.target.value,
                       })
                 }
+                disabled={
+                  (editingDiscount
+                    ? editingDiscount.loaiMa
+                    : newDiscount.LoaiMa) === "Fixed"
+                }
+                title={
+                  (editingDiscount
+                    ? editingDiscount.loaiMa
+                    : newDiscount.LoaiMa) === "Fixed"
+                    ? "Mã giảm thẳng tiền không cần nhập ô này"
+                    : ""
+                }
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="block font-bold text-gray-700">
+                Số lượng mã
+              </label>
+              <input
+                type="number"
+                required
+                className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-green-500"
+                value={
+                  editingDiscount
+                    ? editingDiscount.soLuong
+                    : newDiscount.SoLuong
+                }
+                onChange={(e) =>
+                  editingDiscount
+                    ? setEditingDiscount({
+                        ...editingDiscount,
+                        soLuong: parseInt(e.target.value) || 0,
+                      })
+                    : setNewDiscount({
+                        ...newDiscount,
+                        SoLuong: e.target.value,
+                      })
+                }
               />
             </div>
           </div>
-          <div className="space-y-1">
-            <label className="block font-bold text-gray-700">Số lượng mã</label>
-            <input
-              type="number"
-              required
-              className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-green-500"
-              value={
-                editingDiscount ? editingDiscount.soLuong : newDiscount.SoLuong
-              }
-              onChange={(e) =>
-                editingDiscount
-                  ? setEditingDiscount({
-                      ...editingDiscount,
-                      soLuong: parseInt(e.target.value) || 0,
-                    })
-                  : setNewDiscount({ ...newDiscount, SoLuong: e.target.value })
-              }
-            />
-          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
               <label className="block font-bold text-gray-700">
@@ -360,6 +458,7 @@ const DiscountTab = () => {
               />
             </div>
           </div>
+
           <div className="flex gap-2 pt-2">
             <button
               type="submit"
