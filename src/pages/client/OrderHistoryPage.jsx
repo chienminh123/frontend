@@ -192,7 +192,7 @@ const OrderHistoryPage = () => {
                   </p>
                 </div>
 
-                <div className="bg-gray-50 rounded-xl p-4 mb-6 text-sm text-gray-700">
+                <div className="bg-gray-50 rounded-xl p-4 mb-4 text-sm text-gray-700">
                   <p>
                     <span className="font-bold">Người nhận:</span>{" "}
                     {orderDetail.tenNguoiNhan}
@@ -212,6 +212,34 @@ const OrderHistoryPage = () => {
                     </p>
                   )}
                 </div>
+
+                {/* ======================================================== */}
+                {/* 🎯 NÚT THEO DÕI LALAMOVE NẰM Ở ĐÂY (NỔI BẬT NHẤT) */}
+                {/* ======================================================== */}
+                {orderDetail.lalamoveTrackingUrl && (
+                  <div className="mb-6 p-4 bg-orange-50 border border-orange-100 rounded-xl flex flex-col items-center sm:flex-row sm:justify-between gap-3 animate-fade-in shadow-inner">
+                    <div className="flex items-center gap-3">
+                      <span className="text-3xl animate-bounce">🛵</span>
+                      <div>
+                        <p className="text-sm text-orange-800 font-black">
+                          Tài xế đang giao hàng!
+                        </p>
+                        <p className="text-[11px] text-orange-600">
+                          Theo dõi Shipper Lalamove trên bản đồ.
+                        </p>
+                      </div>
+                    </div>
+                    <a
+                      href={orderDetail.lalamoveTrackingUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full sm:w-auto text-center bg-orange-500 hover:bg-orange-600 text-white font-bold px-4 py-2 rounded-lg text-xs shadow-md transition active:scale-95 flex items-center justify-center gap-1"
+                    >
+                      📍 Mở Bản Đồ
+                    </a>
+                  </div>
+                )}
+                {/* ======================================================== */}
 
                 <div className="border-t-2 border-dashed border-gray-200 pt-4 mb-4">
                   <p className="font-black text-gray-800 mb-3">

@@ -13,6 +13,9 @@ const CheckoutPage = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [shippingFee, setShippingFee] = useState(15000);
 
+  // 🎯 1. STATE LƯU MÃ BÁO GIÁ LALAMOVE
+  const [lalamoveQuotationId, setLalamoveQuotationId] = useState("");
+
   const [formData, setFormData] = useState({
     tenNguoiNhan: "",
     sdtNguoiNhan: "",
@@ -81,7 +84,6 @@ const CheckoutPage = () => {
     [cartItems],
   );
 
-  // Logic hiển thị phí ship cuối cùng
   const finalShippingFee = useMemo(
     () => (subTotal >= 99000 ? 0 : shippingFee),
     [subTotal, shippingFee],
@@ -93,12 +95,10 @@ const CheckoutPage = () => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  // Hàm "thần thánh" tự động tính tiền ship qua Lalamove khi khách nhập xong địa chỉ
   const handleEstimateFee = async () => {
     if (!formData.diaChiGiaoHang || formData.diaChiGiaoHang.length < 10) return;
 
     try {
-      // 1. Lấy tọa độ từ OpenStreetMap
       const searchQuery = encodeURIComponent(
         formData.diaChiGiaoHang + ", Hà Nội, Việt Nam",
       );
@@ -111,7 +111,6 @@ const CheckoutPage = () => {
         const lat = geoData[0].lat;
         const lng = geoData[0].lon;
 
-        // 2. GỌI API TÌM CỬA HÀNG GẦN NHẤT (THÊM MỚI)
         const nearestRes = await axiosClient.get(
           `/client/order/nearest?lat=${lat}&lng=${lng}`,
         );
@@ -123,11 +122,13 @@ const CheckoutPage = () => {
           shopName: shopName,
         }));
 
-        // 3. Tính giá Lalamove
         const res = await axiosClient.get(
           `/client/delivery/estimate-fee?destination=${encodeURIComponent(formData.diaChiGiaoHang)}&lat=${lat}&lng=${lng}&shopId=${nearestRes.data.shopId}&customerName=${encodeURIComponent(formData.tenNguoiNhan)}&customerPhone=${encodeURIComponent(formData.sdtNguoiNhan)}`,
         );
+
+        // 🎯 2. ĐÃ VÁ: Nhận về cả phí và quotationId từ Backend mới nâng cấp
         setShippingFee(res.data.fee);
+        setLalamoveQuotationId(res.data.quotationId || "");
       }
     } catch (err) {
       console.error("Lỗi khi tính phí hoặc tìm cửa hàng:", err);
@@ -153,6 +154,9 @@ const CheckoutPage = () => {
       TongTienHang: subTotal,
       PhiGiaoHang: finalShippingFee,
       ShopId: formData.shopId,
+
+      // 🎯 3. ĐÃ VÁ: Đóng gói mã báo giá đẩy xuống API checkout C#
+      LalamoveQuotationId: lalamoveQuotationId,
     };
 
     try {
@@ -162,27 +166,22 @@ const CheckoutPage = () => {
         headers: { Authorization: `Bearer ${user.token}` },
       });
 
-      // 🌟 QUAN TRỌNG: Nếu chọn VNPAY và C# trả về link -> Chuyển hướng ngay!
       if (payload.PhuongThucThanhToan === "VNPAY" && res.data?.paymentUrl) {
         window.location.href = res.data.paymentUrl;
-        return; // Dừng code tại đây để trình duyệt bay sang trang VNPay
+        return;
       }
 
-      // Nếu là COD thì xử lý như cũ
       window.dispatchEvent(
         new CustomEvent("cartUpdated", { detail: { action: "clear" } }),
       );
       alert("🎉 Đặt hàng thành công!");
       navigate("/account/my-orders");
     } catch (err) {
-      // Ép log ra lỗi thật từ C# để dễ debug nếu có
       console.error("Lỗi từ server C#:", err?.response?.data || err);
-
       const errorMsg =
         typeof err?.response?.data === "string"
           ? err.response.data
           : err?.response?.data?.message || "Lỗi hệ thống khi đặt hàng!";
-
       alert(errorMsg);
     } finally {
       setIsSubmitting(false);
@@ -362,7 +361,6 @@ const CheckoutPage = () => {
                         className="w-full h-full object-cover"
                       />
                     </div>
-                    {/* KHU VỰC HIỂN THỊ CHI TIẾT ĐÃ ĐƯỢC CẬP NHẬT */}
                     <div>
                       <p className="font-bold text-sm text-gray-800 leading-tight">
                         {item.tenMon} (x{item.soLuong})

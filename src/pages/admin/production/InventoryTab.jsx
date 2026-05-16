@@ -209,12 +209,19 @@ const InventoryTab = () => {
       return;
     try {
       setLoading(true);
-      await api.put(
-        `/Admin/BienLai/xu_ly_phieu/${id}?trangThaiMoi=${status}`,
-        null,
-        { headers: authHeaders },
-      );
-      alert("Xử lý phiếu thành công!");
+      if (status === "HOAN_THANH") {
+        await api.put(`/Admin/Kho/duyet_phieu/${id}`, null, {
+          headers: authHeaders,
+        });
+      } else {
+        await api.put(
+          `/Admin/BienLai/xu_ly_phieu/${id}?trangThaiMoi=${status}`,
+          null,
+          { headers: authHeaders },
+        );
+      }
+
+      alert("Xử lý phiếu và cập nhật kho thành công!");
       setDetailModal(null);
       loadVouchers();
     } catch (err) {
@@ -261,6 +268,7 @@ const InventoryTab = () => {
     if (field === "NguyenLieuName") {
       const existMat = materials.find((m) => m.nguyenLieuName === value);
       if (existMat) {
+        newItems[index].NguyenLieuId = existMat.nguyenLieuId;
         newItems[index].DonVi = existMat.donVi || "";
         newItems[index].GiaNhap = existMat.giaNhap || 0;
         newItems[index].TheLoaiId = existMat.theLoaiId || "";
@@ -293,6 +301,7 @@ const InventoryTab = () => {
         KhoXuatId: activeModal === "XUAT" ? parseInt(formData.shopId) : null,
         DoiTacId: formData.doiTacId ? parseInt(formData.doiTacId) : null,
         Items: formItems.map((i) => ({
+          NguyenLieuId: parseInt(i.NguyenLieuId) || 0,
           NguyenLieuName: i.NguyenLieuName,
           DonVi: i.DonVi,
           GhiChu: i.GhiChu,
